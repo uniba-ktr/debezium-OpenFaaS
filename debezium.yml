@@ -1,0 +1,95 @@
+version: '3.2'
+
+networks:
+  streaming:
+    external:
+      name: streaming
+  frontend:
+    external:
+      name: frontend
+
+services:
+  zookeeper:
+    image: debezium/zookeeper:${DEBEZIUM_VERSION:-0.9}
+    hostname: zookeeper
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+    networks:
+      - streaming
+
+  kafka:
+    image: debezium/kafka:${DEBEZIUM_VERSION:-0.9}
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      - ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_HOST_NAME=kafka
+      - ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENERS=PLAINTEXT://kafka:9092
+      - HOST_NAME=kafka
+    networks:
+      - streaming
+
+  kafka-rest:
+    image: confluentinc/cp-kafka-rest:${CONFLUENT_PLATFORM_VERSION:-4.0.1}
+    hostname: kafka-rest
+    depends_on:
+      - kafka
+    environment:
+      - ACCESS_CONTROL_ALLOW_ORIGIN="*"
+      - KAFKA_REST_SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - KAFKA_REST_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_REST_HOST_NAME=kafka-rest
+      - KAFKA_REST_LISTENERS=http://kafka-rest:8082
+      - KAFKA_REST_BOOTSTRAP_SERVERS=PLAINTEXT://kafka:9092
+    ports:
+      - 8082:8082
+    networks:
+      - streaming
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:${CONFLUENT_PLATFORM_VERSION:-4.0.1}
+    hostname: schema-registry
+    depends_on:
+      - zookeeper
+    environment:
+      - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081
+    networks:
+      - streaming
+
+  kafka-topics-ui:
+    image: landoop/kafka-topics-ui:${LANDOOP_VERSION:-0.9.4}
+    depends_on:
+      - kafka-rest
+    environment:
+      - KAFKA_REST_PROXY_URL=http://kafka-rest:8082
+      - SCHEMAREGISTRY_UI_URL=http://schema-registry:8081
+      - PROXY=true
+    networks:
+      - streaming
+      - frontend
+    deploy:
+      labels:
+        - "traefik.backend=kafka-topics-ui"
+        - "traefik.port=8000"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:topics.docker.fun"
+
+  schema-registry-ui:
+    image: landoop/schema-registry-ui:${LANDOOP_VERSION:-0.9.4}
+    hostname: schema-registry-ui
+    environment:
+      - PROXY=true
+      - SCHEMAREGISTRY_URL=http://schema-registry:8081
+    networks:
+      - streaming
+      - frontend
+    deploy:
+      labels:
+        - "traefik.backend=schema-registry-ui"
+        - "traefik.port=8000"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:schemas.docker.fun"

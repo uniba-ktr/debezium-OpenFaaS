@@ -1,0 +1,91 @@
+version: '3.2'
+
+networks:
+  streaming:
+    external:
+      name: streaming
+  databases:
+    external:
+      name: databases
+  functions:
+    external:
+      name: functions
+  frontend:
+    external:
+      name: frontend
+
+services:
+  # Initial Postgres
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=fun
+      - POSTGRES_USER=fun
+      - POSTGRES_DB=faas
+    networks:
+      - databases
+
+  prest:
+    image: prest/prest
+    depends_on:
+      - postgres
+    ports:
+      - 4000:3000
+    environment:
+      - PREST_DEBUG=true # remove comment for enable DEBUG mode (disable JWT)
+      - PREST_PG_HOST=postgres
+      - PREST_PG_USER=fun
+      - PREST_PG_PASS=fun
+      - PREST_PG_DATABASE=faas
+      - PREST_PG_PORT=5432
+      - PREST_JWT_DEFAULT=false # remove if need jwt
+    networks:
+      - databases
+      - functions
+
+  # For Debezium
+  mysql:
+    image: mysql/mysql-server:5.7
+    volumes:
+      - ./sql/config:/etc/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=debezium
+      - MYSQL_USER=fun
+      - MYSQL_PASSWORD=fun
+      - MYSQL_DATABASE=faas
+    networks:
+      - databases
+
+  connect:
+    image: debezium/connect:${DEBEZIUM_VERSION:-0.9}
+    hostname: connect
+    depends_on:
+      - kafka
+    ports:
+      - 8083:8083
+      - 5005:5005
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - GROUP_ID=1
+      - HOST_NAME=connect
+      - CONFIG_STORAGE_TOPIC=my_connect_configs
+      - OFFSET_STORAGE_TOPIC=my_connect_offset
+    networks:
+      - streaming
+      - databases
+    labels:
+      ftrigger.kafka: 'true'
+      ftrigger.kafka.topic: 'data'
+
+
+  adminer:
+    image: adminer
+    networks:
+      - databases
+      - frontend
+    deploy:
+      labels:
+        - "traefik.backend=adminer"
+        - "traefik.port=8080"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:adminer.docker.fun"

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "traefik",
+    "link": "http://traefik.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  },
+  {
+    "name": "grafana",
+    "link": "http://grafana.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  },
+  {
+    "name": "prometheus",
+    "link": "http://prometheus.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  },
+  {
+    "name": "topics",
+    "link": "http://topics.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  },
+  {
+    "name": "adminer",
+    "link": "http://adminer.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  },
+  {
+    "name": "faas",
+    "link": "http://faas.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  },
+  {
+    "name": "schemas",
+    "link": "http://schemas.docker.fun",
+    "button": "btn-primary",
+    "image": "empty"
+  }
+]

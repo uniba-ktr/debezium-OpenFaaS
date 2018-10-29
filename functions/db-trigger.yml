@@ -1,0 +1,11 @@
+provider:
+  name: faas
+  gateway: http://127.0.0.1:8080
+  network: functions
+functions:
+  db-trigger:
+    lang: python3
+    handler: ./db-trigger
+    image: whatever4711/db-trigger:latest
+
+# faas-cli up -f db-trigger.yml

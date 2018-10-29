@@ -1,0 +1,32 @@
+provider:
+  name: faas
+  gateway: http://127.0.0.1:8080
+  network: functions
+
+functions:
+  db-insert:
+    lang: python3
+    handler: ./db-insert
+    image: whatever4711/fun-db:insert
+    environment:
+      write_debug: true
+  db-update:
+    lang: python3
+    handler: ./db-update
+    image: whatever4711/fun-db:update
+    environment:
+      write_debug: true
+  db-delete:
+    lang: python3
+    handler: ./db-delete
+    image: whatever4711/fun-db:delete
+    environment:
+      write_debug: true
+  character-cut:
+    lang: go
+    handler: ./character-cut
+    image: whatever4711/fun-db:cut
+    environment:
+      write_debug: true
+
+#faas-cli up -f db-stack.yml

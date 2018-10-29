@@ -1,0 +1,46 @@
+version: '3.2'
+
+networks:
+  monitoring:
+    external:
+      name: monitoring
+  frontend:
+    external:
+      name: frontend
+
+services:
+  prometheus:
+    image: functions/prometheus:latest
+    command:
+      - "-config.file=/etc/prometheus/prometheus.yml"
+      - "-storage.local.path=/prometheus"
+      - "-storage.local.memory-chunks=10000"
+    environment:
+      - no_proxy=gateway
+    networks:
+      - monitoring
+      - frontend
+    deploy:
+      labels:
+        - "traefik.backend=prometheus"
+        - "traefik.port=9090"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:prometheus.docker.fun"
+      placement:
+        constraints:
+          - 'node.role == manager'
+          - 'node.platform.os == linux'
+
+  grafana:
+    image: unibaktr/grafana
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - monitoring
+      - frontend
+    deploy:
+      labels:
+        - "traefik.backend=grafana"
+        - "traefik.port=3000"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:grafana.docker.fun"

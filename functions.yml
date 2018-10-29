@@ -1,0 +1,72 @@
+version: '3.2'
+
+networks:
+  streaming:
+    external:
+      name: streaming
+  monitoring:
+    external:
+      name: monitoring
+  functions:
+    external:
+      name: functions
+  frontend:
+    external:
+      name: frontend
+
+
+services:
+  gateway:
+    image: functions/gateway:0.6.15
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      dnsrr: 'true'
+    deploy:
+      placement:
+        constraints:
+          - 'node.role == manager'
+          - 'node.platform.os == linux'
+    ports:
+      - 8080:8080
+    networks:
+      - functions
+      - monitoring
+      - frontend
+    deploy:
+      labels:
+        - "traefik.backend=gateway"
+        - "traefik.port=8080"
+        - "traefik.docker.network=frontend"
+        - "traefik.frontend.rule=Host:faas.docker.fun"
+
+  ftrigger-kafka:
+    image: ucalgary/ftrigger:master
+    depends_on:
+      - kafka
+    command: kafka-trigger
+    networks:
+      - functions
+      - streaming
+
+  db-trigger:
+    image: whatever4711/fun-db:trigger
+    depends_on:
+      - kafka-trigger
+    labels:
+      function: "true"
+    environment:
+      fprocess: "python3 index.py"
+      no_proxy: "gateway"
+      https_proxy: $https_proxy
+      write_debug: "true"
+    deploy:
+      placement:
+        constraints:
+          - 'node.platform.os == linux'
+      labels:
+        ftrigger.kafka: 'true'
+        ftrigger.kafka.topic: 'dbserver.faas.person'
+        ftrigger.kafka.data: 'key-value'
+    networks:
+      - functions
